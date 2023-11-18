@@ -7,22 +7,22 @@ const path = require("path");
 const { BLANK_PDF, Template } = require("@pdfme/common");
 
 //const app = express();
-//const port = 3066;
-app.post("/upload", (req, res) => {
+const port = 3066;
+//app.post("/upload", (req, res) => {
   // Code to handle file upload
-});
+//});
 
-app.get("/download", (req, res) => {
+//app.get("/download", (req, res) => {
   // Code to handle file download
-});
+//});
 
-app.post("/save", (req, res) => {
+//app.post("/save", (req, res) => {
   // Code to save template
-});
+//});
 
-app.post("/reset", (req, res) => {
+//app.post("/reset", (req, res) => {
   // Code to reset template
-});
+//});
 
 app.get("/generate", (req, res) => {
   // const inputs = Object.entries(req.query).map(([name, value]) => ({

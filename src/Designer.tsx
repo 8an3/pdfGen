@@ -61,21 +61,9 @@ function App() {
     }
   };
 
-
-
   const onDownloadTemplate = () => {
     if (designer.current) {
       downloadJsonFile(designer.current.getTemplate(), "template");
-    }
-  };
-
-  const onSaveTemplate = (template?: Template) => {
-    if (designer.current) {
-      localStorage.setItem(
-        "template",
-        JSON.stringify(template || designer.current.getTemplate())
-      );
-      alert("Saved!");
     }
   };
 
@@ -96,6 +84,7 @@ function App() {
       window.open(URL.createObjectURL(blob));
     }
   };
+
   const onLoadTemplate = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target && e.target.files) {
       getTemplateFromJsonFile(e.target.files[0])
@@ -111,15 +100,16 @@ ${e}`);
         });
     }
   };
-  
+
   const [selectedFile, setSelectedFile] = useState('');
+  const [saveMyDoc, setSaveMyDoc] = useState();
 
 
   const onLoadPreTemplate = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const fileName = event.target.value;
     setSelectedFile(fileName);
 
-    fetch(`http://localhost:3010/schemas/${fileName}`)
+    fetch(`http://localhost:3000/schemas/${fileName}`)
       .then(response => response.text())
       .then(data => {
         const blob = new Blob([data], { type: 'application/json' });
@@ -127,6 +117,7 @@ ${e}`);
           .then((t) => {
             if (designer.current) {
               designer.current.updateTemplate(t);
+              setSaveMyDoc(t)
             }
           })
           .catch((e) => {
@@ -138,7 +129,26 @@ ${e}`);
       .catch(error => console.error('Error:', error));
   };
 
-
+  const onSaveTemplate = (template?: Template) => {
+    if (designer.current) {
+      localStorage.setItem("doc", JSON.stringify(template || designer.current.getTemplate()));
+     const data = JSON.stringify(template || designer.current.getTemplate());
+     console.log(data)
+      fetch('http://localhost:3000/pdt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+        .then((response) => {
+          console.log(`${response.url}: ${response.status}`);
+        })
+        .catch((error) => {
+          console.error(`Failed to fetch: ${error}`);
+        });
+  }
+  }
   return (
     <div>
       <header
@@ -167,6 +177,7 @@ ${e}`);
             onChange={onLoadTemplate}
           />
         </label>
+
         <select value={selectedFile} onChange={onLoadPreTemplate}>
           <option value="">Select a file</option>
           {fileNames.map((fileName) => (
