@@ -1,12 +1,13 @@
 const express = require("express");
 const app = express();
-const port = 3066;
 const { Font, generate } = require("@pdfme/generator");
 const { Form, Viewer, checkTemplate } = require("@pdfme/ui");
 const fs = require("fs");
 const path = require("path");
 const { BLANK_PDF, Template } = require("@pdfme/common");
 
+//const app = express();
+//const port = 3066;
 app.post("/upload", (req, res) => {
   // Code to handle file upload
 });
@@ -24,10 +25,11 @@ app.post("/reset", (req, res) => {
 });
 
 app.get("/generate", (req, res) => {
-  const inputs = Object.entries(req.query).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  // const inputs = Object.entries(req.query).map(([name, value]) => ({
+  //   name,
+  ///value,
+  // }));
+  const data = req.query;
 
   const template = {
     schemas: [
@@ -117,7 +119,15 @@ app.get("/generate", (req, res) => {
     ],
   };
 
-  // const inputs = [{ clientName: data.clientName, year: data.year, make: data.make, model: data.model, price: data.price, }];
+  const inputs = [
+    {
+      clientName: data.clientName,
+      year: data.year,
+      make: data.make,
+      model: data.model,
+      price: data.price,
+    },
+  ];
 
   generate({ template, inputs }).then((pdf) => {
     console.log(pdf);

@@ -1,14 +1,25 @@
 {
-  "extends": "./tsconfig.esm",
   "compilerOptions": {
-    "outDir": "./dist",
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
-  "paths": {
-    "@pdfme/common": [
-      "packages/common/src"
-    ],
-    "@pdfme/schemas": [
-      "packages/schemas/src"
-    ]
+  "include": ["src"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
   }
 }

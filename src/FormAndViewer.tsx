@@ -1,16 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Template, checkTemplate } from "@pdfme/common";
-import { Form, Viewer } from "@pdfme/ui";
+import { Form, Viewer, Template, checkTemplate } from "@pdfme/ui";
+import { generate } from "@pdfme/generator";
 import {
   getFontsData,
   getTemplate,
-  handleLoadTemplate,
-  generatePDF,
-  getPlugins,
+  getTemplateFromJsonFile,
   isJsonString,
 } from "./helper";
-
-const headerHeight = 65;
 
 type Mode = "form" | "viewer";
 
@@ -57,7 +53,6 @@ function App() {
           template,
           inputs,
           options: { font },
-          plugins: getPlugins(),
         });
       }
     });
@@ -73,6 +68,22 @@ function App() {
     const value = e.target.value as Mode;
     setMode(value);
     localStorage.setItem("mode", value);
+  };
+
+  const onLoadTemplate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target && e.target.files) {
+      getTemplateFromJsonFile(e.target.files[0])
+        .then((t) => {
+          if (ui.current) {
+            ui.current.updateTemplate(t);
+          }
+        })
+        .catch((e) => {
+          alert(`Invalid template file.
+--------------------------
+${e}`);
+        });
+    }
   };
 
   const onGetInputs = () => {
@@ -112,20 +123,53 @@ function App() {
     }
   };
 
+  const onGeneratePDF = async () => {
+    if (ui.current) {
+      const template = ui.current.getTemplate();
+      const inputs = ui.current.getInputs();
+      const font = await getFontsData();
+      const pdf = await generate({ template, inputs, options: { font } });
+      const blob = new Blob([pdf.buffer], { type: "application/pdf" });
+      window.open(URL.createObjectURL(blob));
+    }
+  };
+
   return (
     <div>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginRight: 120, }}>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <strong>Form, Viewer</strong>
         <span style={{ margin: "0 1rem" }}>:</span>
         <div>
-          <input type="radio" onChange={onChangeMode} id="form" value="form" checked={mode === "form"} />
+          <input
+            type="radio"
+            onChange={onChangeMode}
+            id="form"
+            value="form"
+            checked={mode === "form"}
+          />
           <label htmlFor="form">Form</label>
-          <input type="radio" onChange={onChangeMode} id="viewer" value="viewer" checked={mode === "viewer"} />
+          <input
+            type="radio"
+            onChange={onChangeMode}
+            id="viewer"
+            value="viewer"
+            checked={mode === "viewer"}
+          />
           <label htmlFor="viewer">Viewer</label>
         </div>
         <label style={{ width: 180 }}>
           Load Template
-          <input type="file" accept="application/json" onChange={(e) => handleLoadTemplate(e, ui.current)} />
+          <input
+            type="file"
+            accept="application/json"
+            onChange={onLoadTemplate}
+          />
         </label>
         <span style={{ margin: "0 1rem" }}>/</span>
         <button onClick={onGetInputs}>Get Inputs</button>
@@ -136,9 +180,9 @@ function App() {
         <span style={{ margin: "0 1rem" }}>/</span>
         <button onClick={onResetInputs}>Reset Inputs</button>
         <span style={{ margin: "0 1rem" }}>/</span>
-        <button onClick={() => generatePDF(ui.current)}>Generate PDF</button>
+        <button onClick={onGeneratePDF}>Generate PDF</button>
       </header>
-      <div ref={uiRef} style={{ width: '100%', height: `calc(100vh - ${headerHeight}px)` }} />
+      <div ref={uiRef} />
     </div>
   );
 }

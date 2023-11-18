@@ -1,18 +1,17 @@
-import { useEffect, useRef } from "react";
-import { Template, checkTemplate } from "@pdfme/common";
-import { Designer } from "@pdfme/ui";
+import { useEffect, useRef, useState } from "react";
+import { Designer, Template, checkTemplate } from "@pdfme/ui";
+import { generate } from "@pdfme/generator";
 import {
   getFontsData,
   getTemplate,
   readFile,
   cloneDeep,
-  getPlugins,
-  handleLoadTemplate,
-  generatePDF,
+  getTemplateFromJsonFile,
   downloadJsonFile,
 } from "./helper";
+import fs from 'fs';
 
-const headerHeight = 65;
+const fileNames = ['bosSchema.json', 'ucdaSchema.json'];
 
 function App() {
   const designerRef = useRef<HTMLDivElement | null>(null);
@@ -37,7 +36,6 @@ function App() {
           domContainer: designerRef.current,
           template,
           options: { font },
-          plugins: getPlugins(),
         });
         designer.current.onSaveTemplate(onSaveTemplate);
       }
@@ -63,10 +61,11 @@ function App() {
     }
   };
 
+
+
   const onDownloadTemplate = () => {
     if (designer.current) {
       downloadJsonFile(designer.current.getTemplate(), "template");
-      console.log(designer.current.getTemplate());
     }
   };
 
@@ -87,20 +86,93 @@ function App() {
     }
   };
 
+  const onGeneratePDF = async () => {
+    if (designer.current) {
+      const template = designer.current.getTemplate();
+      const inputs = template.sampledata ?? [];
+      const font = await getFontsData();
+      const pdf = await generate({ template, inputs, options: { font } });
+      const blob = new Blob([pdf.buffer], { type: "application/pdf" });
+      window.open(URL.createObjectURL(blob));
+    }
+  };
+  const onLoadTemplate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target && e.target.files) {
+      getTemplateFromJsonFile(e.target.files[0])
+        .then((t) => {
+          if (designer.current) {
+            designer.current.updateTemplate(t);
+          }
+        })
+        .catch((e) => {
+          alert(`Invalid template file.
+--------------------------
+${e}`);
+        });
+    }
+  };
+  
+  const [selectedFile, setSelectedFile] = useState('');
+
+
+  const onLoadPreTemplate = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const fileName = event.target.value;
+    setSelectedFile(fileName);
+
+    fetch(`http://localhost:3010/schemas/${fileName}`)
+      .then(response => response.text())
+      .then(data => {
+        const blob = new Blob([data], { type: 'application/json' });
+        getTemplateFromJsonFile(blob)
+          .then((t) => {
+            if (designer.current) {
+              designer.current.updateTemplate(t);
+            }
+          })
+          .catch((e) => {
+            alert(`Invalid template file.
+--------------------------
+${e}`);
+          });
+      })
+      .catch(error => console.error('Error:', error));
+  };
+
+
   return (
     <div>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginRight: 120, }}>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <strong>Designer</strong>
         <span style={{ margin: "0 1rem" }}>:</span>
         <label style={{ width: 180 }}>
           Change BasePDF
-          <input type="file" accept="application/pdf" onChange={onChangeBasePDF} />
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={onChangeBasePDF}
+          />
         </label>
         <span style={{ margin: "0 1rem" }}>/</span>
         <label style={{ width: 180 }}>
           Load Template
-          <input type="file" accept="application/json" onChange={(e) => handleLoadTemplate(e, designer.current)} />
+          <input
+            type="file"
+            accept="application/json"
+            onChange={onLoadTemplate}
+          />
         </label>
+        <select value={selectedFile} onChange={onLoadPreTemplate}>
+          <option value="">Select a file</option>
+          {fileNames.map((fileName) => (
+            <option key={fileName} value={fileName}>{fileName}</option>
+          ))}
+        </select>
         <span style={{ margin: "0 1rem" }}>/</span>
         <button onClick={onDownloadTemplate}>Download Template</button>
         <span style={{ margin: "0 1rem" }}>/</span>
@@ -108,9 +180,9 @@ function App() {
         <span style={{ margin: "0 1rem" }}>/</span>
         <button onClick={onResetTemplate}>Reset Template</button>
         <span style={{ margin: "0 1rem" }}>/</span>
-        <button onClick={() => generatePDF(designer.current)}>Generate PDF</button>
+        <button onClick={onGeneratePDF}>Generate PDF</button>
       </header>
-      <div ref={designerRef} style={{ width: '100%', height: `calc(100vh - ${headerHeight}px)` }} />
+      <div ref={designerRef} />
     </div>
   );
 }
