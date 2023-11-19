@@ -10,8 +10,9 @@ import {
   downloadJsonFile,
 } from "./helper";
 import fs from 'fs';
+import axios from "axios";
 
-const fileNames = ['bosSchema.json', 'ucdaSchema.json'];
+
 
 function App() {
   const designerRef = useRef<HTMLDivElement | null>(null);
@@ -103,52 +104,61 @@ ${e}`);
 
   const [selectedFile, setSelectedFile] = useState('');
   const [saveMyDoc, setSaveMyDoc] = useState();
-
+  const fileNames = ['bosSchema.json', 'ucdaSchema.json'];
 
   const onLoadPreTemplate = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const fileName = event.target.value;
     setSelectedFile(fileName);
 
-    fetch(`http://localhost:3000/schemas/${fileName}`)
-      .then(response => response.text())
-      .then(data => {
-        const blob = new Blob([data], { type: 'application/json' });
-        getTemplateFromJsonFile(blob)
-          .then((t) => {
-            if (designer.current) {
-              designer.current.updateTemplate(t);
-              setSaveMyDoc(t)
-            }
-          })
-          .catch((e) => {
-            alert(`Invalid template file.
---------------------------
-${e}`);
-          });
+    return axios.get(`http://localhost:3010/schemas/${selectedFile}`)
+      .then((response) => {
+        if (typeof response.data === 'object' && response.data !== null) {
+          const blob = new Blob([JSON.stringify(response.data)], { type: 'application/json' });
+          console.log(blob)
+          getTemplateFromJsonFile(blob)
+            .then((t) => {
+              if (designer.current) {
+                designer.current.updateTemplate(t);
+                setSaveMyDoc(t)
+              }
+            })
+        } else {
+          console.error('Server response is not JSON:', response.data);
+        }
       })
-      .catch(error => console.error('Error:', error));
-  };
+      .catch((error) => {
+        console.error(error);
+      });
+    }
 
-  const onSaveTemplate = (template?: Template) => {
-    if (designer.current) {
-      localStorage.setItem("doc", JSON.stringify(template || designer.current.getTemplate()));
-     const data = JSON.stringify(template || designer.current.getTemplate());
-     console.log(data)
-      fetch('http://localhost:3000/pdt', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+
+const onSaveTemplate = (template?: Template) => {
+  if (designer.current) {
+    const data = template || designer.current.getTemplate();
+    localStorage.setItem("doc", JSON.stringify(data));
+    console.log('Parent window:', window.parent);
+
+    window.parent.postMessage(data, 'http://127.0.0.1:3000/docUploader');
+    console.log('Message sent from iframe:', data);
+  }
+  const axios = require("axios");
+  if (designer.current) {
+  const data = template || designer.current.getTemplate();
+
+    return axios.post("http://localhost:3066/pdt", { params: data })
+      .then((response) => {
+        console.log(response.data);
+        console.log(request);
       })
-        .then((response) => {
-          console.log(`${response.url}: ${response.status}`);
-        })
-        .catch((error) => {
-          console.error(`Failed to fetch: ${error}`);
-        });
+      .catch((error) => {
+        console.error(error);
+      });
   }
-  }
+
+};
+
+
+
   return (
     <div>
       <header
@@ -199,3 +209,20 @@ ${e}`);
 }
 
 export default App;
+/* *  return axios.post('http://localhost:3000/docUploaderintake',  {
+        headers: {
+          'Content-Type': 'application/json',
+        
+
+        },
+    data:{ 
+    template: data,
+      }
+      })
+        .then((response) => {
+          console.log(`${response.config.url}: ${response.status}`);
+        })
+        .catch((error) => {
+          console.error(`Failed to fetch: ${error}`);
+        });
+    }*/
